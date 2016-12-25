@@ -1,0 +1,28 @@
+{
+  "name": "lamprox",
+  "version": "0.0.1",
+  "description": "Framework for development lambda-proxy function of AWS Lambda.",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc --outDir ./dist --sourceMap ./src/index.ts",
+    "test": "mocha --compilers ts:espower-typescript/guess $(find ./test/ -name '*.ts')"
+  },
+  "keywords": ["TypeScript", "AWS Lambda"],
+  "author": "AKIRA-MIYAKE",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/power-assert": "^1.4.29",
+    "@types/sinon": "^1.16.33",
+    "espower-typescript": "7.0.0",
+    "mocha": "3.2.0",
+    "power-assert": "1.4.2",
+    "sinon": "^1.17.6",
+    "typescript": "2.1.4"
+  },
+  "dependencies": {
+    "@types/aws-lambda": "0.0.5",
+    "@types/mocha": "^2.2.34",
+    "@types/node": "6.0.52",
+    "monapt": "^0.6.0"
+  }
+}
