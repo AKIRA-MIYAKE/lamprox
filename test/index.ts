@@ -4,12 +4,12 @@ import * as sinon from 'sinon';
 import { prepareLambdaFunction, createLambdaFunction, lamprox, ILambdaCallback } from '../src';
 
 describe('lamprox', () => {
-  
+
   describe('prepareLambdaFunction()', () => {
-    
+
     it('Should return prepared function.', () => {
       const prepared = prepareLambdaFunction<null, string>();
-      
+
       const lf = prepared((ambience, promise) => {
         promise.success('This is a main process.');
       });
@@ -17,7 +17,7 @@ describe('lamprox', () => {
       const lfc = sinon.spy();
 
       lf(null, null, lfc);
-      
+
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].statusCode, 200);
       assert.equal(lfc.args[0][1].body, 'This is a main process.');
@@ -25,7 +25,7 @@ describe('lamprox', () => {
 
     it('Should return prepared function with async process.', () => {
       const prepared = prepareLambdaFunction<null, string>();
-      
+
       const lf = prepared((ambience, promise) => {
         setTimeout(() => {
           promise.success('This is a main process.');
@@ -51,13 +51,13 @@ describe('lamprox', () => {
           promise.success(10);
         })
       });
-      
+
       const lf = prepared((ambience, promise) => {
         promise.success(`Before result is ${ambience.result}.`);
       });
 
       const lfc = sinon.spy();
-      
+
       lf(null, null, lfc);
 
       assert.ok(lfc.calledOnce);
@@ -72,7 +72,7 @@ describe('lamprox', () => {
             headers: {
               'Test': 'test'
             },
-            body: JSON.stringify(ambience.result)
+            body: ambience.result
           });
         })
       });
@@ -84,23 +84,23 @@ describe('lamprox', () => {
       const lfc = sinon.spy();
 
       lf(null, null, lfc);
-      
+
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].headers.Test, 'test');
-      assert.equal(lfc.args[0][1].body, JSON.stringify({ test: 'This is a test.' }));
+      assert.equal(lfc.args[0][1].body.test, 'This is a test.');
     });
 
 
     it('Should return prepared function when set after process.', () => {
       const prepared = prepareLambdaFunction<null, { [key: string]: any }>({
         after: ((ambience, promise) => {
-          const resultBody = JSON.parse(ambience.result.body);
+          const resultBody = ambience.result.body;
           const afterBody = Object.assign({}, resultBody, { after: 42 });
 
           promise.success({
             statusCode: ambience.result.statusCode,
             headers: ambience.result.headers,
-            body: JSON.stringify(afterBody)
+            body: afterBody
           });
         })
       });
@@ -112,9 +112,10 @@ describe('lamprox', () => {
       const lfc = sinon.spy();
 
       lf(null, null, lfc);
-      
+
       assert.ok(lfc.calledOnce);
-      assert.equal(lfc.args[0][1].body, JSON.stringify({ test: 'This is a test.', after: 42 }));
+      assert.equal(lfc.args[0][1].body.test, 'This is a test.');
+      assert.equal(lfc.args[0][1].body.after, 42);
     });
 
     it('Should call default onFailure process when main process fail.', () => {
@@ -157,14 +158,14 @@ describe('lamprox', () => {
       const prepared = prepareLambdaFunction<null, string>({
         onFailure: ((ambience, promise) => {
           const errorMessage = ambience.result.message;
-          
+
           promise.success({
             statusCode: 404,
             headers: {},
-            body: JSON.stringify({
+            body: {
               test: 'test',
               message: errorMessage
-            })
+            }
           });
         })
       });
@@ -179,7 +180,7 @@ describe('lamprox', () => {
 
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].statusCode, 404);
-      assert.equal(lfc.args[0][1].body, JSON.stringify({ test: 'test', message: 'This is error.' }));
+      assert.equal(lfc.args[0][1].body.test, 'test');
     });
 
     it('Should call fatal error handler when onSuccess process fail.', () => {
@@ -199,10 +200,7 @@ describe('lamprox', () => {
 
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].statusCode, 500);
-      assert.equal(lfc.args[0][1].body, JSON.stringify({
-        error: 'Fatal Error',
-        originalError: new Error('This is error')
-      }));
+      assert.equal(lfc.args[0][1].body.error, 'Fatal Error');
     });
 
     it('Should call fatal error handler when after process fail.', () => {
@@ -222,10 +220,7 @@ describe('lamprox', () => {
 
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].statusCode, 500);
-      assert.equal(lfc.args[0][1].body, JSON.stringify({
-        error: 'Fatal Error',
-        originalError: new Error('This is error')
-      }));
+      assert.equal(lfc.args[0][1].body.error, 'Fatal Error');
     });
 
     it('Should call fatal error handler when onFailure process fail.', () => {
@@ -245,10 +240,7 @@ describe('lamprox', () => {
 
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].statusCode, 500);
-      assert.equal(lfc.args[0][1].body, JSON.stringify({
-        error: 'Fatal Error',
-        originalError: new Error('This is error')
-      }));
+      assert.equal(lfc.args[0][1].body.error, 'Fatal Error');
     });
 
   });
