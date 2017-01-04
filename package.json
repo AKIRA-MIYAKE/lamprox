@@ -1,6 +1,6 @@
 {
   "name": "lamprox",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Framework for development lambda-proxy function of AWS Lambda.",
   "main": "./dist/index.js",
   "directories": {
@@ -34,6 +34,6 @@
   "dependencies": {
     "@types/aws-lambda": "0.0.5",
     "@types/node": "6.0.52",
-    "monapt": "^0.6.0"
+    "monapt": "^0.7.0"
   }
 }
