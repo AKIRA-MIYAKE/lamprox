@@ -135,14 +135,8 @@ export class Processor<T, U> implements IProcessor<T, U> {
 }
 
 function _wrapProcess<T, U>(ambience: IProcessAmbience<T>, process: IProcess<T, U>): Future<IProcessAmbience<U>> {
-  return Future.succeed(ambience)
-  .map(process)
-  .map((result, promise) => {
-    promise.success({
-      lambda: ambience.lambda,
-      result: result
-    });
-  });
+  return future<U>(promise => process(ambience, promise))
+  .map<IProcessAmbience<U>>(result => ({ lambda: ambience.lambda, result: result }));
 }
 
 function _fatalErrorHandler(error: Error, callback: ILambdaCallback) {
