@@ -72,7 +72,7 @@ describe('lamprox', () => {
             headers: {
               'Test': 'test'
             },
-            body: ambience.result
+            body: JSON.stringify(ambience.result)
           });
         })
       });
@@ -87,20 +87,20 @@ describe('lamprox', () => {
 
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].headers.Test, 'test');
-      assert.equal(lfc.args[0][1].body.test, 'This is a test.');
+      assert.equal(JSON.parse(lfc.args[0][1].body).test, 'This is a test.');
     });
 
 
     it('Should return prepared function when set after process.', () => {
       const prepared = prepareLambdaFunction<null, { [key: string]: any }>({
         after: ((ambience, promise) => {
-          const resultBody = ambience.result.body;
+          const resultBody = JSON.parse(ambience.result.body);
           const afterBody = Object.assign({}, resultBody, { after: 42 });
 
           promise.success({
             statusCode: ambience.result.statusCode,
             headers: ambience.result.headers,
-            body: afterBody
+            body: JSON.stringify(afterBody)
           });
         })
       });
@@ -114,8 +114,8 @@ describe('lamprox', () => {
       lf(null, null, lfc);
 
       assert.ok(lfc.calledOnce);
-      assert.equal(lfc.args[0][1].body.test, 'This is a test.');
-      assert.equal(lfc.args[0][1].body.after, 42);
+      assert.equal(JSON.parse(lfc.args[0][1].body).test, 'This is a test.');
+      assert.equal(JSON.parse(lfc.args[0][1].body).after, 42);
     });
 
     it('Should call default onFailure process when main process fail.', () => {
@@ -162,10 +162,10 @@ describe('lamprox', () => {
           promise.success({
             statusCode: 404,
             headers: {},
-            body: {
+            body: JSON.stringify({
               test: 'test',
               message: errorMessage
-            }
+            })
           });
         })
       });
@@ -180,7 +180,7 @@ describe('lamprox', () => {
 
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].statusCode, 404);
-      assert.equal(lfc.args[0][1].body.test, 'test');
+      assert.equal(JSON.parse(lfc.args[0][1].body).test, 'test');
     });
 
     it('Should call fatal error handler when onSuccess process fail.', () => {
@@ -200,7 +200,7 @@ describe('lamprox', () => {
 
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].statusCode, 500);
-      assert.equal(lfc.args[0][1].body.error, 'Fatal Error');
+      assert.equal(JSON.parse(lfc.args[0][1].body).error, 'Fatal Error');
     });
 
     it('Should call fatal error handler when after process fail.', () => {
@@ -220,7 +220,7 @@ describe('lamprox', () => {
 
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].statusCode, 500);
-      assert.equal(lfc.args[0][1].body.error, 'Fatal Error');
+      assert.equal(JSON.parse(lfc.args[0][1].body).error, 'Fatal Error');
     });
 
     it('Should call fatal error handler when onFailure process fail.', () => {
@@ -240,7 +240,7 @@ describe('lamprox', () => {
 
       assert.ok(lfc.calledOnce);
       assert.equal(lfc.args[0][1].statusCode, 500);
-      assert.equal(lfc.args[0][1].body.error, 'Fatal Error');
+      assert.equal(JSON.parse(lfc.args[0][1].body).error, 'Fatal Error');
     });
 
   });

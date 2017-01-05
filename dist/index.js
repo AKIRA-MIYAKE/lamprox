@@ -7,10 +7,17 @@ var Processor = (function () {
             promise.success(null);
         };
         this.onSuccess = function (ambience, promise) {
+            var body;
+            if (typeof ambience.result === 'string') {
+                body = ambience.result;
+            }
+            else {
+                body = JSON.stringify(ambience.result);
+            }
             promise.success({
                 statusCode: 200,
                 headers: {},
-                body: ambience.result
+                body: body
             });
         };
         this.onFailure = function (ambience, promise) {
@@ -79,10 +86,10 @@ var _fatalErrorHandler = function (error, callback) {
     callback(null, {
         statusCode: 500,
         headers: {},
-        body: {
+        body: JSON.stringify({
             error: 'Fatal Error',
             originalError: error
-        }
+        })
     });
 };
 exports.prepareLambdaFunction = function (options) {

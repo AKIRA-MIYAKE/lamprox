@@ -12,7 +12,7 @@ export type ILambdaCallback = (error: null, result: ILambdaCallbackResult) => vo
 export interface ILambdaCallbackResult {
   statusCode: number;
   headers: { [key: string]: string };
-  body: any;
+  body: string;
 }
 
 
@@ -62,10 +62,17 @@ export class Processor<T, U> implements IProcessor<T, U> {
   };
 
   onSuccess: IOnSuccessProcess<U> = (ambience, promise) => {
+    let body: string;
+    if (typeof ambience.result === 'string') {
+      body = ambience.result;
+    } else {
+      body = JSON.stringify(ambience.result);
+    }
+
     promise.success({
       statusCode: 200,
       headers: {},
-      body: ambience.result
+      body: body
     });
   };
 
@@ -143,10 +150,10 @@ const _fatalErrorHandler = (error: Error, callback: ILambdaCallback) => {
   callback(null, {
     statusCode: 500,
     headers: {},
-    body: {
+    body: JSON.stringify({
       error: 'Fatal Error',
       originalError: error
-    }
+    })
   });
 };
 
