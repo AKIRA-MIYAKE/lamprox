@@ -10,7 +10,7 @@ var Processor = (function () {
             promise.success({
                 statusCode: 200,
                 headers: {},
-                body: JSON.stringify(ambience.result)
+                body: ambience.result
             });
         };
         this.onFailure = function (ambience, promise) {
@@ -71,37 +71,29 @@ var Processor = (function () {
     return Processor;
 }());
 exports.Processor = Processor;
-function _wrapProcess(ambience, process) {
-    return monapt_1.Future.succeed(ambience)
-        .map(process)
-        .map(function (result, promise) {
-        promise.success({
-            lambda: ambience.lambda,
-            result: result
-        });
-    });
-}
-function _fatalErrorHandler(error, callback) {
+var _wrapProcess = function (ambience, process) {
+    return monapt_1.future(function (promise) { return process(ambience, promise); })
+        .map(function (result) { return ({ lambda: ambience.lambda, result: result }); });
+};
+var _fatalErrorHandler = function (error, callback) {
     callback(null, {
         statusCode: 500,
         headers: {},
-        body: JSON.stringify({
+        body: {
             error: 'Fatal Error',
             originalError: error
-        })
+        }
     });
-}
-function prepareLambdaFunction(options) {
+};
+exports.prepareLambdaFunction = function (options) {
     if (options === void 0) { options = {}; }
     return function (main) { return new Processor(main, options).lambda(); };
-}
-exports.prepareLambdaFunction = prepareLambdaFunction;
-function createLambdaFunction(main, options) {
+};
+exports.createLambdaFunction = function (main, options) {
     if (options === void 0) { options = {}; }
-    return prepareLambdaFunction(options)(main);
-}
-exports.createLambdaFunction = createLambdaFunction;
+    return exports.prepareLambdaFunction(options)(main);
+};
 exports.lamprox = function (main) {
-    return createLambdaFunction(main);
+    return exports.createLambdaFunction(main);
 };
 //# sourceMappingURL=index.js.map
