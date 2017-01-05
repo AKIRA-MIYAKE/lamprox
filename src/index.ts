@@ -134,12 +134,12 @@ export class Processor<T, U> implements IProcessor<T, U> {
 
 }
 
-function _wrapProcess<T, U>(ambience: IProcessAmbience<T>, process: IProcess<T, U>): Future<IProcessAmbience<U>> {
+const _wrapProcess = <T, U>(ambience: IProcessAmbience<T>, process: IProcess<T, U>): Future<IProcessAmbience<U>> => {
   return future<U>(promise => process(ambience, promise))
   .map<IProcessAmbience<U>>(result => ({ lambda: ambience.lambda, result: result }));
-}
+};
 
-function _fatalErrorHandler(error: Error, callback: ILambdaCallback) {
+const _fatalErrorHandler = (error: Error, callback: ILambdaCallback) => {
   callback(null, {
     statusCode: 500,
     headers: {},
@@ -148,16 +148,16 @@ function _fatalErrorHandler(error: Error, callback: ILambdaCallback) {
       originalError: error
     }
   });
-}
+};
 
-export function prepareLambdaFunction<T, U>(options: IProcessorOptions<T, U> = {}): (main: IMainProcess<T, U>) => ILambdaFunction {
+export const prepareLambdaFunction = <T, U>(options: IProcessorOptions<T, U> = {}): (main: IMainProcess<T, U>) => ILambdaFunction => {
   return main => new Processor<T, U>(main, options).lambda();
-}
+};
 
-export function createLambdaFunction<T, U>(main: IMainProcess<T, U>, options: IProcessorOptions<T, U> = {}) {
+export const createLambdaFunction = <T, U>(main: IMainProcess<T, U>, options: IProcessorOptions<T, U> = {}): ILambdaFunction => {
   return prepareLambdaFunction(options)(main);
-}
+};
 
-export const lamprox = (main: IMainProcess<null, string>): ILambdaFunction  => {
-  return createLambdaFunction<null, string>(main);
-}
+export const lamprox = <T>(main: IMainProcess<null, T>): ILambdaFunction  => {
+  return createLambdaFunction<null, T>(main);
+};
