@@ -1,7 +1,7 @@
 import * as assert from 'power-assert';
 import * as sinon from 'sinon';
 
-import { prepareLambdaFunction, createLambdaFunction, lamprox, ILambdaCallback } from '../src';
+import { prepareLambdaFunction, createLambdaFunction, lamprox } from '../src';
 
 describe('lamprox', () => {
 

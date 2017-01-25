@@ -1,13 +1,14 @@
 {
   "name": "lamprox",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Framework for development lambda-proxy function of AWS Lambda.",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "build": "tsc --outDir ./dist --sourceMap ./src/index.ts",
+    "build": "tsc && dts-generator --name lamprox --project ./ --out ./dist/index.d.ts",
     "test": "mocha --compilers ts:espower-typescript/guess $(find ./test/ -name '*.ts')"
   },
   "repository": {
@@ -22,9 +23,10 @@
   },
   "homepage": "https://github.com/AKIRA-MIYAKE/lamprox#readme",
   "devDependencies": {
-    "@types/power-assert": "^1.4.29",
     "@types/mocha": "^2.2.34",
+    "@types/power-assert": "^1.4.29",
     "@types/sinon": "^1.16.33",
+    "dts-generator": "^2.0.0",
     "espower-typescript": "7.0.0",
     "mocha": "3.2.0",
     "power-assert": "1.4.2",
