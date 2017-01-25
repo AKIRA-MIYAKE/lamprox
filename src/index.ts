@@ -1,67 +1,71 @@
 import { Future, future, IFuturePromiseLike } from 'monapt';
 import { Context, Callback } from 'aws-lambda';
 
-export type ILambdaFunction = (event: ILambdaEvent, context: ILambdaContext, callback: ILambdaCallback) => void
+export interface LambdaFunction {
+  (event: LambdaEvent, context: LambdaContext, callback: LambdaCallback): void
+}
 
-export type ILambdaEvent = any;
+export type LambdaEvent = any;
 
-export type ILambdaContext = Context;
+export type LambdaContext = Context;
 
-export type ILambdaCallback = (error: null, result: ILambdaCallbackResult) => void;
+export interface LambdaCallback {
+  (error: null, result: LambdaCallbackResult): void;
+}
 
-export interface ILambdaCallbackResult {
+export interface LambdaCallbackResult {
   statusCode: number;
   headers: { [key: string]: string };
   body: string;
 }
 
+export interface Process<T, U> {
+  (value: ProcessAmbience<T>, promise: IFuturePromiseLike<U>): void;
+}
 
-export type IProcess<T, U> = (value: IProcessAmbience<T>, promise: IFuturePromiseLike<U>) => void;
-
-export interface IProcessAmbience<T> {
-  lambda: IProcessAmbienceLambda;
+export interface ProcessAmbience<T> {
+  lambda: ProcessAmbienceLambda;
   result: T;
 }
 
-export interface IProcessAmbienceLambda {
-  event: ILambdaEvent;
-  context: ILambdaContext;
-  callback: ILambdaCallback;
+export interface ProcessAmbienceLambda {
+  event: LambdaEvent;
+  context: LambdaContext;
+  callback: LambdaCallback;
 }
 
+export interface ProcessorInterface<T, U> {
+  before: BeforeProcess<T>;
+  main: MainProcess<T, U>;
+  onSuccess: OnSuccessProcess<U>;
+  onFailure: OnFailureProcess;
+  after: AfterProcess;
 
-export interface IProcessor<T, U> {
-  before: IBeforeProcess<T>;
-  main: IMainProcess<T, U>;
-  onSuccess: IOnSuccessProcess<U>;
-  onFailure: IOnFailureProcess;
-  after: IAfterProcess;
-
-  lambda: () => ILambdaFunction;
+  lambda: () => LambdaFunction;
 }
 
-export type IBeforeProcess<T> = IProcess<null, T>;
-export type IMainProcess<T, U> = IProcess<T, U>;
-export type IOnSuccessProcess<T> = IProcess<T, ILambdaCallbackResult>;
-export type IOnFailureProcess = IProcess<Error, ILambdaCallbackResult>;
-export type IAfterProcess = IProcess<ILambdaCallbackResult, ILambdaCallbackResult>
+export type BeforeProcess<T> = Process<null, T>;
+export type MainProcess<T, U> = Process<T, U>;
+export type OnSuccessProcess<T> = Process<T, LambdaCallbackResult>;
+export type OnFailureProcess = Process<Error, LambdaCallbackResult>;
+export type AfterProcess = Process<LambdaCallbackResult, LambdaCallbackResult>
 
-export interface IProcessorOptions<T, U> {
-  before?: IBeforeProcess<T>;
-  onSuccess?: IOnSuccessProcess<U>;
-  onFailure?: IOnFailureProcess;
-  after?: IAfterProcess;
+export interface ProcessorOptions<T, U> {
+  before?: BeforeProcess<T>;
+  onSuccess?: OnSuccessProcess<U>;
+  onFailure?: OnFailureProcess;
+  after?: AfterProcess;
 }
 
-export class Processor<T, U> implements IProcessor<T, U> {
+export class Processor<T, U> implements ProcessorInterface<T, U> {
 
-  main: IMainProcess<T, U>;
+  main: MainProcess<T, U>;
 
-  before: IBeforeProcess<T> = (ambience, promise) => {
+  before: BeforeProcess<T> = (ambience, promise) => {
     promise.success(null);
   };
 
-  onSuccess: IOnSuccessProcess<U> = (ambience, promise) => {
+  onSuccess: OnSuccessProcess<U> = (ambience, promise) => {
     let body: string;
     if (typeof ambience.result === 'string') {
       body = ambience.result;
@@ -76,7 +80,7 @@ export class Processor<T, U> implements IProcessor<T, U> {
     });
   };
 
-  onFailure: IOnFailureProcess = (ambience, promise) => {
+  onFailure: OnFailureProcess = (ambience, promise) => {
     promise.success({
       statusCode: 500,
       headers: {},
@@ -84,11 +88,11 @@ export class Processor<T, U> implements IProcessor<T, U> {
     });
   };
 
-  after: IAfterProcess = (ambience, promise) => {
+  after: AfterProcess = (ambience, promise) => {
     promise.success(ambience.result);
   };
 
-  constructor(main: IMainProcess<T, U>, options: IProcessorOptions<T, U> = {}) {
+  constructor(main: MainProcess<T, U>, options: ProcessorOptions<T, U> = {}) {
     this.main = main;
 
     if ('before' in options) {
@@ -108,9 +112,9 @@ export class Processor<T, U> implements IProcessor<T, U> {
     }
   }
 
-  lambda(): ILambdaFunction {
+  lambda(): LambdaFunction {
     return (event, context, callback) => {
-      future<IProcessAmbience<ILambdaCallbackResult>>(promise => {
+      future<ProcessAmbience<LambdaCallbackResult>>(promise => {
         Future.succeed({ lambda: { event, context, callback }, result: null })
         .flatMap(ambience => _wrapProcess(ambience, this.before))
         .flatMap(ambience => _wrapProcess(ambience, this.main))
@@ -141,12 +145,12 @@ export class Processor<T, U> implements IProcessor<T, U> {
 
 }
 
-const _wrapProcess = <T, U>(ambience: IProcessAmbience<T>, process: IProcess<T, U>): Future<IProcessAmbience<U>> => {
+const _wrapProcess = <T, U>(ambience: ProcessAmbience<T>, process: Process<T, U>): Future<ProcessAmbience<U>> => {
   return future<U>(promise => process(ambience, promise))
-  .map<IProcessAmbience<U>>(result => ({ lambda: ambience.lambda, result: result }));
+  .map<ProcessAmbience<U>>(result => ({ lambda: ambience.lambda, result: result }));
 };
 
-const _fatalErrorHandler = (error: Error, callback: ILambdaCallback) => {
+const _fatalErrorHandler = (error: Error, callback: LambdaCallback) => {
   callback(null, {
     statusCode: 500,
     headers: {},
@@ -157,14 +161,14 @@ const _fatalErrorHandler = (error: Error, callback: ILambdaCallback) => {
   });
 };
 
-export const prepareLambdaFunction = <T, U>(options: IProcessorOptions<T, U> = {}): (main: IMainProcess<T, U>) => ILambdaFunction => {
+export const prepareLambdaFunction = <T, U>(options: ProcessorOptions<T, U> = {}): (main: MainProcess<T, U>) => LambdaFunction => {
   return main => new Processor<T, U>(main, options).lambda();
 };
 
-export const createLambdaFunction = <T, U>(main: IMainProcess<T, U>, options: IProcessorOptions<T, U> = {}): ILambdaFunction => {
+export const createLambdaFunction = <T, U>(main: MainProcess<T, U>, options: ProcessorOptions<T, U> = {}): LambdaFunction => {
   return prepareLambdaFunction(options)(main);
 };
 
-export const lamprox = <T>(main: IMainProcess<null, T>): ILambdaFunction  => {
+export const lamprox = <T>(main: MainProcess<null, T>): LambdaFunction  => {
   return createLambdaFunction<null, T>(main);
 };
