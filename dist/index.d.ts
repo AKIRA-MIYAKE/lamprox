@@ -16,48 +16,50 @@ declare module 'lamprox' {
 	    };
 	    body: string;
 	}
-	export interface Process<T, U> {
-	    (value: ProcessAmbience<T>, promise: IFuturePromiseLike<U>): void;
+	export interface Process<T, U, E> {
+	    (value: ProcessAmbience<T, E>, promise: IFuturePromiseLike<U>): void;
 	}
-	export interface ProcessAmbience<T> {
+	export interface ProcessAmbience<T, E> {
 	    lambda: ProcessAmbienceLambda;
 	    result: T;
+	    environments: E;
 	}
 	export interface ProcessAmbienceLambda {
 	    event: LambdaEvent;
 	    context: LambdaContext;
 	    callback: LambdaCallback;
 	}
-	export interface ProcessorInterface<T, U> {
-	    before: BeforeProcess<T>;
-	    main: MainProcess<T, U>;
-	    onSuccess: OnSuccessProcess<U>;
-	    onFailure: OnFailureProcess;
-	    after: AfterProcess;
+	export interface ProcessorInterface<T, U, E> {
+	    before: BeforeProcess<T, E>;
+	    main: MainProcess<T, U, E>;
+	    onSuccess: OnSuccessProcess<U, E>;
+	    onFailure: OnFailureProcess<E>;
+	    after: AfterProcess<E>;
 	    lambda: () => LambdaFunction;
 	}
-	export type BeforeProcess<T> = Process<null, T>;
-	export type MainProcess<T, U> = Process<T, U>;
-	export type OnSuccessProcess<T> = Process<T, LambdaCallbackResult>;
-	export type OnFailureProcess = Process<Error, LambdaCallbackResult>;
-	export type AfterProcess = Process<LambdaCallbackResult, LambdaCallbackResult>;
-	export interface ProcessorOptions<T, U> {
-	    before?: BeforeProcess<T>;
-	    onSuccess?: OnSuccessProcess<U>;
-	    onFailure?: OnFailureProcess;
-	    after?: AfterProcess;
+	export type BeforeProcess<T, E> = Process<null, T, E>;
+	export type MainProcess<T, U, E> = Process<T, U, E>;
+	export type OnSuccessProcess<U, E> = Process<U, LambdaCallbackResult, E>;
+	export type OnFailureProcess<E> = Process<Error, LambdaCallbackResult, E>;
+	export type AfterProcess<E> = Process<LambdaCallbackResult, LambdaCallbackResult, E>;
+	export interface ProcessorOptions<T, U, E> {
+	    before?: BeforeProcess<T, E>;
+	    onSuccess?: OnSuccessProcess<U, E>;
+	    onFailure?: OnFailureProcess<E>;
+	    after?: AfterProcess<E>;
 	}
-	export class Processor<T, U> implements ProcessorInterface<T, U> {
-	    main: MainProcess<T, U>;
-	    before: BeforeProcess<T>;
-	    onSuccess: OnSuccessProcess<U>;
-	    onFailure: OnFailureProcess;
-	    after: AfterProcess;
-	    constructor(main: MainProcess<T, U>, options?: ProcessorOptions<T, U>);
+	export class Processor<T, U, E> implements ProcessorInterface<T, U, E> {
+	    main: MainProcess<T, U, E>;
+	    environments: E;
+	    before: BeforeProcess<T, E>;
+	    onSuccess: OnSuccessProcess<U, E>;
+	    onFailure: OnFailureProcess<E>;
+	    after: AfterProcess<E>;
+	    constructor(main: MainProcess<T, U, E>, options?: ProcessorOptions<T, U, E>, environments?: E);
 	    lambda(): LambdaFunction;
 	}
-	export const prepareLambdaFunction: <T, U>(options?: ProcessorOptions<T, U>) => (main: Process<T, U>) => LambdaFunction;
-	export const createLambdaFunction: <T, U>(main: Process<T, U>, options?: ProcessorOptions<T, U>) => LambdaFunction;
-	export const lamprox: <T>(main: Process<null, T>) => LambdaFunction;
+	export const prepareLambdaFunction: <T, U, E>(options?: ProcessorOptions<T, U, E>, environments?: E) => (main: Process<T, U, E>) => LambdaFunction;
+	export const createLambdaFunction: <T, U, E>(main: Process<T, U, E>, options?: ProcessorOptions<T, U, E>, environments?: E) => LambdaFunction;
+	export const lamprox: <T>(main: Process<null, T, null>) => LambdaFunction;
 
 }
