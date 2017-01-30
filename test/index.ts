@@ -6,11 +6,14 @@ import { prepareLambdaFunction, createLambdaFunction, lamprox } from '../src';
 describe('lamprox', () => {
 
   describe('prepareLambdaFunction()', () => {
+    type Environments = { fizz: string, bazz: number };
 
     it('Should return prepared function.', () => {
-      const prepared = prepareLambdaFunction<null, string>();
+      const prepared = prepareLambdaFunction<null, string, Environments>(undefined, { fizz: 'test', bazz: 42 });
 
       const lf = prepared((ambience, promise) => {
+        assert.equal(ambience.environments.fizz, 'test');
+        assert.equal(ambience.environments.bazz, 42);
         promise.success('This is a main process.');
       });
 
@@ -24,10 +27,12 @@ describe('lamprox', () => {
     });
 
     it('Should return prepared function with async process.', () => {
-      const prepared = prepareLambdaFunction<null, string>();
+      const prepared = prepareLambdaFunction<null, string, Environments>(undefined, { fizz: 'test', bazz: 42 });
 
       const lf = prepared((ambience, promise) => {
         setTimeout(() => {
+          assert.equal(ambience.environments.fizz, 'test');
+          assert.equal(ambience.environments.bazz, 42);
           promise.success('This is a main process.');
         }, 1000);
       });
@@ -46,13 +51,15 @@ describe('lamprox', () => {
     });
 
     it('Should return prepared function when set before process.', () => {
-      const prepared = prepareLambdaFunction<number, string>({
+      const prepared = prepareLambdaFunction<number, string, Environments>({
         before: ((ambience, promise) => {
+          ambience.environments.fizz = 'answer';
           promise.success(10);
         })
-      });
+      }, { fizz: 'test', bazz: 42 });
 
       const lf = prepared((ambience, promise) => {
+        assert.equal(ambience.environments.fizz, 'answer');
         promise.success(`Before result is ${ambience.result}.`);
       });
 
@@ -65,7 +72,7 @@ describe('lamprox', () => {
     });
 
     it('Should return prepared function when set onSucces process.', () => {
-      const prepared = prepareLambdaFunction<null, { [key: string]: any }>({
+      const prepared = prepareLambdaFunction<null, { [key: string]: any }, null>({
         onSuccess: ((ambience, promise) => {
           promise.success({
             statusCode: 200,
@@ -92,7 +99,7 @@ describe('lamprox', () => {
 
 
     it('Should return prepared function when set after process.', () => {
-      const prepared = prepareLambdaFunction<null, { [key: string]: any }>({
+      const prepared = prepareLambdaFunction<null, { [key: string]: any }, null>({
         after: ((ambience, promise) => {
           const resultBody = JSON.parse(ambience.result.body);
           const afterBody = Object.assign({}, resultBody, { after: 42 });
@@ -119,7 +126,7 @@ describe('lamprox', () => {
     });
 
     it('Should call default onFailure process when main process fail.', () => {
-      const prepared = prepareLambdaFunction<null, string>();
+      const prepared = prepareLambdaFunction<null, string, null>();
 
       const lf = prepared((ambience, promise) => {
         promise.failure(new Error('This is error.'));
@@ -135,7 +142,7 @@ describe('lamprox', () => {
     });
 
     it('Should call default onFailure process when before process fail.', () => {
-      const prepared = prepareLambdaFunction<null, string>({
+      const prepared = prepareLambdaFunction<null, string, null>({
         before: ((ambience, promise) => {
           promise.failure(new Error('This is error.'));
         })
@@ -155,7 +162,7 @@ describe('lamprox', () => {
     });
 
     it('Should call option onFailure process when main process fail.', () => {
-      const prepared = prepareLambdaFunction<null, string>({
+      const prepared = prepareLambdaFunction<null, string, null>({
         onFailure: ((ambience, promise) => {
           const errorMessage = ambience.result.message;
 
@@ -184,7 +191,7 @@ describe('lamprox', () => {
     });
 
     it('Should call fatal error handler when onSuccess process fail.', () => {
-      const prepared = prepareLambdaFunction<null, string>({
+      const prepared = prepareLambdaFunction<null, string, null>({
         onSuccess: ((ambience, promise) => {
           promise.failure(new Error('This is error.'));
         })
@@ -204,7 +211,7 @@ describe('lamprox', () => {
     });
 
     it('Should call fatal error handler when after process fail.', () => {
-      const prepared = prepareLambdaFunction<null, string>({
+      const prepared = prepareLambdaFunction<null, string, null>({
         after: ((ambience, promise) => {
           promise.failure(new Error('This is error.'));
         })
@@ -224,7 +231,7 @@ describe('lamprox', () => {
     });
 
     it('Should call fatal error handler when onFailure process fail.', () => {
-      const prepared = prepareLambdaFunction<null, string>({
+      const prepared = prepareLambdaFunction<null, string, null>({
         onFailure: ((ambience, promise) => {
           promise.failure(new Error('This is error.'));
         })
