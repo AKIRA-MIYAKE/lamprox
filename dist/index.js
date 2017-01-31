@@ -7,7 +7,7 @@ var Processor = (function () {
         this.main = main;
         this.environments = environments;
         this.before = function (ambience, promise) {
-            promise.success(null);
+            promise.success(undefined);
         };
         this.onSuccess = function (ambience, promise) {
             var body;
@@ -72,7 +72,7 @@ var Processor = (function () {
             })
                 .flatMap(function (ambience) { return _wrapProcess(ambience, _this.after); })
                 .onComplete(function (trier) { return trier.match({
-                Success: function (ambience) { ambience.lambda.callback(null, ambience.result); },
+                Success: function (ambience) { ambience.lambda.callback(undefined, ambience.result); },
                 Failure: function (error) { return _fatalErrorHandler(error, callback); }
             }); });
         };
@@ -85,7 +85,7 @@ var _wrapProcess = function (ambience, process) {
         .map(function (result) { return ({ lambda: ambience.lambda, result: result, environments: ambience.environments }); });
 };
 var _fatalErrorHandler = function (error, callback) {
-    callback(null, {
+    callback(undefined, {
         statusCode: 500,
         headers: {},
         body: JSON.stringify({

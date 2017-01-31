@@ -11,7 +11,7 @@ $ npm install lamprox
 ### lamprox()
 
 ```
-(main: IMainProcess<null, T>) => ILambdaFunction
+(main: MainProcess<void, T, void>) => LambdaFunction
 ```
 
 ```
@@ -23,33 +23,33 @@ export const handler = lamprox<{ [key: string]: string }>((ambience, promise) =>
 Lambda function callback is setuped by lamprox.
 
 ```
-callback(null, {
+callback(undefined, {
   statusCode: 200,
   headers: {},
-  body: { foo: 'bar' }
+  body: JSON.stringify({ foo: 'bar' })
 });
 ```
 
 ### createLambdaFunction()
 
 ```
-(main: IMainProcess<T, U>, options: IProcessorOptions<T, U>) => ILambdaFunction
+<T, U, E>(main: MainProcess<T, U, E>, options: ProcessorOptions<T, U, E>) => LambdaFunction
 ```
 
 Create lambda function main process and optional processes - before, onSuccess, onFailure, and after -.
 
 ```
-export const handler = createLambdaFunction<number, string>((ambience, promise) => {
+export const handler = createLambdaFunction<number, string, number>((ambience, promise) => {
   const beforeResult = ambience.result;
   promise.success(`Before result is ${beforeResult}`);
 }, {
-  before: (ambience, promise) => { promise.success(42); },
+  before: (ambience, promise) => { promise.success(ambience.environments); },
   onSuccess: (ambience, promise) => {
     const mainResult = ambience.result;
     promise.success({
       statusCode: 200,
       headers: {},
-      body: { main: mainResult, foo: 'bar' }
+      body: JSON.stringify({ main: mainResult, foo: 'bar' })
     });
   },
   onFailure: (ambience, promise) => {
@@ -71,13 +71,14 @@ export const handler = createLambdaFunction<number, string>((ambience, promise) 
       })
     }));
   }
-});
+},
+42);
 ```
 
 ### prepareLambdaFunction()
 
 ```
-(options: IProcessorOptions<T, U>) => (main: IMainProcess<T, U>) => ILambdaFunction
+<T, U, E>(options: ProcessorOptions<T, U, E>) => (main: MainProcess<T, U, E>) => LambdaFunction
 ```
 
 By passing options in advance, you can get customized `lamprox` function.
