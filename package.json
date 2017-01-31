@@ -1,6 +1,6 @@
 {
   "name": "lamprox",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Framework for development lambda-proxy function of AWS Lambda.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
