@@ -7,7 +7,7 @@ declare module 'lamprox' {
 	export type LambdaEvent = any;
 	export type LambdaContext = Context;
 	export interface LambdaCallback {
-	    (error: null, result: LambdaCallbackResult): void;
+	    (error: undefined, result: LambdaCallbackResult): void;
 	}
 	export interface LambdaCallbackResult {
 	    statusCode: number;
@@ -37,7 +37,7 @@ declare module 'lamprox' {
 	    after: AfterProcess<E>;
 	    lambda: () => LambdaFunction;
 	}
-	export type BeforeProcess<T, E> = Process<null, T, E>;
+	export type BeforeProcess<T, E> = Process<void, T, E>;
 	export type MainProcess<T, U, E> = Process<T, U, E>;
 	export type OnSuccessProcess<U, E> = Process<U, LambdaCallbackResult, E>;
 	export type OnFailureProcess<E> = Process<Error, LambdaCallbackResult, E>;
@@ -60,6 +60,6 @@ declare module 'lamprox' {
 	}
 	export const prepareLambdaFunction: <T, U, E>(options?: ProcessorOptions<T, U, E>, environments?: E) => (main: Process<T, U, E>) => LambdaFunction;
 	export const createLambdaFunction: <T, U, E>(main: Process<T, U, E>, options?: ProcessorOptions<T, U, E>, environments?: E) => LambdaFunction;
-	export const lamprox: <T>(main: Process<null, T, null>) => LambdaFunction;
+	export const lamprox: <T>(main: Process<void, T, void>) => LambdaFunction;
 
 }
