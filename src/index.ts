@@ -10,7 +10,7 @@ export type LambdaEvent = any;
 export type LambdaContext = Context;
 
 export interface LambdaCallback {
-  (error: null, result: LambdaCallbackResult): void;
+  (error: undefined, result: LambdaCallbackResult): void;
 }
 
 export interface LambdaCallbackResult {
@@ -45,7 +45,7 @@ export interface ProcessorInterface<T, U, E> {
   lambda: () => LambdaFunction;
 }
 
-export type BeforeProcess<T, E> = Process<null, T, E>;
+export type BeforeProcess<T, E> = Process<void, T, E>;
 export type MainProcess<T, U, E> = Process<T, U, E>;
 export type OnSuccessProcess<U, E> = Process<U, LambdaCallbackResult, E>;
 export type OnFailureProcess<E> = Process<Error, LambdaCallbackResult, E>;
@@ -61,7 +61,7 @@ export interface ProcessorOptions<T, U, E> {
 export class Processor<T, U, E> implements ProcessorInterface<T, U, E> {
 
   before: BeforeProcess<T, E> = (ambience, promise) => {
-    promise.success(null);
+    promise.success(undefined);
   };
 
   onSuccess: OnSuccessProcess<U, E> = (ambience, promise) => {
@@ -135,7 +135,7 @@ export class Processor<T, U, E> implements ProcessorInterface<T, U, E> {
       })
       .flatMap(ambience => _wrapProcess(ambience, this.after))
       .onComplete(trier => trier.match({
-        Success: ambience => { ambience.lambda.callback(null, ambience.result) },
+        Success: ambience => { ambience.lambda.callback(undefined, ambience.result) },
         Failure: error => _fatalErrorHandler(error, callback)
       }));
     };
@@ -149,7 +149,7 @@ const _wrapProcess= <T, U, E>(ambience: ProcessAmbience<T, E>, process: Process<
 };
 
 const _fatalErrorHandler = (error: Error, callback: LambdaCallback) => {
-  callback(null, {
+  callback(undefined, {
     statusCode: 500,
     headers: {},
     body: JSON.stringify({
@@ -167,6 +167,6 @@ export const createLambdaFunction = <T, U, E>(main: MainProcess<T, U, E>, option
   return prepareLambdaFunction(options, environments)(main);
 };
 
-export const lamprox = <T>(main: MainProcess<null, T, null>): LambdaFunction  => {
-  return createLambdaFunction<null, T, null>(main);
+export const lamprox = <T>(main: MainProcess<void, T, void>): LambdaFunction  => {
+  return createLambdaFunction<void, T, void>(main);
 };
