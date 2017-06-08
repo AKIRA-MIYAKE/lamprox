@@ -2,25 +2,29 @@
   "compileOnSave": false,
   "compilerOptions": {
     "allowJs": false,
-    "declaration": false,
-    "emitDecoratorMetadata": false,
-    "experimentalDecorators": false,
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
     "lib": [ "es6" ],
+    "mapRoot": "dist",
     "module": "commonjs",
+    "moduleResolution": "node",
     "noImplicitAny": true,
     "noImplicitReturns": true,
-    "outDir": "./dist",
+    "outDir": "dist",
+    "skipLibCheck": true,
     "sourceMap": true,
+    "strictNullChecks": false,
     "target": "es5",
     "typeRoots": [
-      "./node_modules/@types"
+      "node_modules/@types"
     ]
   },
   "include": [
-    "./src"
+    "src/**/*"
   ],
   "exclude": [
-    "./node_modules",
-    "!./node_modules/@types"
+    "node_modules",
+    "!node_modules/@types"
   ]
 }
