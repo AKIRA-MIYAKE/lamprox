@@ -107,4 +107,4 @@ exports.createLambdaFunction = function (main, options, environments) {
 exports.lamprox = function (main) {
     return exports.createLambdaFunction(main);
 };
-//# sourceMappingURL=index.js.map
+//# sourceMappingURL=/Users/miyakeakira/Documents/Repositories/lamprox/dist/index.js.map
