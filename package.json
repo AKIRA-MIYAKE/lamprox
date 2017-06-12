@@ -1,6 +1,6 @@
 {
   "name": "lamprox",
-  "version": "0.0.9",
+  "version": "0.10.0",
   "description": "Framework for development lambda-proxy function of AWS Lambda.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,11 +26,11 @@
     "@types/mocha": "^2.2.34",
     "@types/power-assert": "^1.4.29",
     "@types/sinon": "^1.16.33",
-    "espower-typescript": "7.0.0",
+    "espower-typescript": "^8.0.0",
     "mocha": "3.2.0",
     "power-assert": "1.4.2",
     "sinon": "^1.17.6",
-    "typescript": "2.1.4"
+    "typescript": "^2.3.4"
   },
   "dependencies": {
     "@types/aws-lambda": "0.0.5",
