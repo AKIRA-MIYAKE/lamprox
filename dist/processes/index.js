@@ -1,41 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * Default processes that pre-set to processor.
- */
-var Processes;
-(function (Processes) {
-    Processes.getBeforeProcess = function () { return function (ambience, promise) {
-        promise.success(undefined);
-    }; };
-    Processes.getOnSuccessProcess = function () { return function (ambience, promise) {
-        var mainResult = ambience.result;
-        var body;
-        if (typeof mainResult !== 'undefined') {
-            if (typeof mainResult === 'string') {
-                body = mainResult;
-            }
-            else {
-                body = JSON.stringify(mainResult);
-            }
-        }
-        var result = {
-            statusCode: 200,
-            body: body
-        };
-        promise.success(result);
-    }; };
-    Processes.getOnFailureProcess = function () { return function (ambience, promise) {
-        var error = ambience.result;
-        promise.success({
-            statusCode: 500,
-            body: JSON.stringify({
-                name: error.name,
-                message: error.message
-            })
-        });
-    }; };
-    Processes.getAfterProcess = function () { return function (ambience, promise) {
-        promise.success(ambience.result);
-    }; };
-})(Processes = exports.Processes || (exports.Processes = {}));
+exports.getDefaultBeforeProcess = function () { return function (ambience) { return Promise.resolve(undefined); }; };
+exports.getDefaultAfterProcess = function () { return function (ambience) { return Promise.resolve(ambience.result); }; };
+exports.getDefaultResponseProcess = function () { return function (ambience) {
+    var result = ambience.result;
+    var body = (typeof result !== 'undefined')
+        ? (typeof result !== 'string') ? JSON.stringify(result) : result
+        : '';
+    return Promise.resolve({
+        statusCode: 200,
+        body: body
+    });
+}; };
+exports.getDefaultOnErrorProcess = function () { return function (ambience) {
+    var result = ambience.result;
+    var body = (typeof result !== 'undefined')
+        ? JSON.stringify({ name: result.name, message: result.message })
+        : JSON.stringify({ name: 'FatalError', message: 'An error occurred.' });
+    return Promise.resolve({
+        statusCode: 500,
+        body: body
+    });
+}; };
