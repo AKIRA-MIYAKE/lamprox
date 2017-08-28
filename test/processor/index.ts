@@ -1,7 +1,8 @@
 import * as assert from 'power-assert'
+import { invokeHandler, generateMockCallback } from 'lambda-utilities'
 
 import { Processor } from '../../src/processor'
-import { invokeLambdaFunction, createLambdaProxyEvent } from '../../src/utils'
+import { generateDummyAPIGatewayEvent } from '../../src/utilities'
 
 describe('processor', () => {
 
@@ -17,260 +18,151 @@ describe('processor', () => {
 
   describe('Processor', () => {
 
-    it('Should get lambda functin.', done => {
+    it('Should get handler.', done => {
       const processor = new Processor<undefined, MainProcessResult, Enviroments>(
-        (ambience, promise) => {
+        ambience => {
           const result: MainProcessResult = {
             fizz: ambience.environments.foo,
             buzz: ambience.environments.bar * 2
           }
-          promise.success(result)
+          return Promise.resolve(result)
         },
         { foo: 'env', bar: 21 }
       )
-      const lambdaFunction = processor.getLambdaFunction()
+      const handler = processor.toHandler()
 
-      invokeLambdaFunction(lambdaFunction, { event: createLambdaProxyEvent() })
-      .onComplete(trier => trier.match({
-        Success: result => {
-          assert.equal(result.statusCode, 200)
-          assert.equal(result.body, JSON.stringify({ fizz: 'env', buzz: 42 }))
-          done()
-        },
-        Failure: error => {
-          assert.fail(error)
-          done()
-        }
-      }))
+      const callback = generateMockCallback((error, result) => {
+        callback.once()
+        assert.equal(result.statusCode, 200)
+        assert.equal(result.body, JSON.stringify({ fizz: 'env', buzz: 42 }))
+        assert.ok(callback.verify())
+        done()
+      })
+      
+      invokeHandler(handler, {
+        event: generateDummyAPIGatewayEvent(),
+        callback: callback
+      })
     })
 
-    it('Should get lambda function with async process.', done => {
+    it('Should get async handler.', done => {
       const processor = new Processor<undefined, MainProcessResult, Enviroments>(
-        (ambience, promise) => {
+        ambience => new Promise((resolve, reject) => {
           const result: MainProcessResult = {
             fizz: ambience.environments.foo,
             buzz: ambience.environments.bar * 2
           }
           setTimeout(() => {
-            promise.success(result)
+            resolve(result)
           }, 1000)
-        },
+        }),
         { foo: 'env', bar: 21 }
       )
-      const lambdaFunction = processor.getLambdaFunction()
+      const handler = processor.toHandler()
 
-      invokeLambdaFunction(lambdaFunction, { event: createLambdaProxyEvent() })
-      .onComplete(trier => trier.match({
-        Success: result => {
-          assert.equal(result.statusCode, 200)
-          assert.equal(result.body, JSON.stringify({ fizz: 'env', buzz: 42 }))
-          done()
-        },
-        Failure: error => {
-          assert.fail(error)
-          done()
-        }
-      }))
+      const callback = generateMockCallback((error, result) => {
+        callback.once()
+        assert.equal(result.statusCode, 200)
+        assert.equal(result.body, JSON.stringify({ fizz: 'env', buzz: 42 }))
+        assert.ok(callback.verify())
+        done()
+      })
+      
+      invokeHandler(handler, {
+        event: generateDummyAPIGatewayEvent(),
+        callback: callback
+      })
     })
 
-    it('Should get lambda function with before process.', done => {
+    it('Should get handler with before process.', done => {
       const processor = new Processor<string, MainProcessResult, Enviroments>(
-        (ambience, promise) => {
+        ambience => {
           const result: MainProcessResult = {
             fizz: `${ambience.result}:${ambience.environments.foo}`,
             buzz: ambience.environments.bar * 2
           }
-          promise.success(result)
+          return Promise.resolve(result)
         },
         { foo: 'env', bar: 21 },
         {
-          before: (ambience, promise) => {
-            promise.success('before')
-          }
+          before: ambience => Promise.resolve('before')
         }
       )
-      const lambdaFunction = processor.getLambdaFunction()
 
-      invokeLambdaFunction(lambdaFunction, { event: createLambdaProxyEvent() })
-      .onComplete(trier => trier.match({
-        Success: result => {
-          assert.equal(result.statusCode, 200)
-          assert.equal(result.body, JSON.stringify({ fizz: 'before:env', buzz: 42 }))
-          done()
-        },
-        Failure: error => {
-          assert.fail(error)
-          done()
-        }
-      }))
+      const handler = processor.toHandler()
+      
+      const callback = generateMockCallback((error, result) => {
+        callback.once()
+        assert.equal(result.statusCode, 200)
+        assert.equal(result.body, JSON.stringify({ fizz: 'before:env', buzz: 42 }))
+        assert.ok(callback.verify())
+        done()
+      })
+      
+      invokeHandler(handler, {
+        event: generateDummyAPIGatewayEvent(),
+        callback: callback
+      })
     }),
 
-    it('Should get lambda funtion with onSuccess prosess.', done => {
+    it('Should get handler with after prosess.', done => {
       const processor = new Processor<undefined, MainProcessResult, Enviroments>(
-        (ambience, promise) => {
+        ambience => {
           const result: MainProcessResult = {
             fizz: ambience.environments.foo,
             buzz: ambience.environments.bar * 2
           }
-          ambience.environments.foo = 'updated'
-          promise.success(result)
+          return Promise.resolve(result)
         },
         { foo: 'env', bar: 21 },
         {
-          onSuccess: (ambience, promise) => {
-            assert.equal(ambience.environments.foo, 'updated')
-
-            promise.success({
-              statusCode: 200,
-              headers: { 'Test': 'test' },
-              body: JSON.stringify(ambience.result)
-            })
+          after: ambience => {
+            const result: MainProcessResult = {
+              fizz: `after:${ambience.result.fizz}`,
+              buzz: ambience.result.buzz
+            }
+            return Promise.resolve(result)
           }
         }
       )
-      const lambdaFunction = processor.getLambdaFunction()
-
-      invokeLambdaFunction(lambdaFunction, { event: createLambdaProxyEvent() })
-      .onComplete(trier => trier.match({
-        Success: result => {
-          assert.equal(result.statusCode, 200)
-          assert.equal(result.headers['Test'], 'test')
-          assert.equal(result.body, JSON.stringify({ fizz: 'env', buzz: 42 }))
-          done()
-        },
-        Failure: error => {
-          assert.fail(error)
-          done()
-        }
-      }))
+      
+      const handler = processor.toHandler()
+      
+      const callback = generateMockCallback((error, result) => {
+        callback.once()
+        assert.equal(result.statusCode, 200)
+        assert.equal(result.body, JSON.stringify({ fizz: 'after:env', buzz: 42 }))
+        assert.ok(callback.verify())
+        done()
+      })
+      
+      invokeHandler(handler, {
+        event: generateDummyAPIGatewayEvent(),
+        callback: callback
+      })
     })
 
-    it('Should get lambda funtion with onFailuer prosess.', done => {
+    it('Should get handler that invoke onErrorProcess when error occured.', done => {
       const processor = new Processor<undefined, MainProcessResult, Enviroments>(
-        (ambience, promise) => {
-          promise.failure(new Error('This is a error'))
-        },
-        { foo: 'env', bar: 21 },
-        {
-          onFailure: (ambience, promise) => {
-            promise.success({
-              statusCode: 500,
-              body: `OnFailuer:${ambience.result.message}`
-            })
-          }
-        }
-      )
-      const lambdaFunction = processor.getLambdaFunction()
-
-      invokeLambdaFunction(lambdaFunction, { event: createLambdaProxyEvent() })
-      .onComplete(trier => trier.match({
-        Success: result => {
-          assert.equal(result.statusCode, 500)
-          assert.equal(result.body, `OnFailuer:This is a error`)
-          done()
-        },
-        Failure: error => {
-          assert.fail(error)
-          done()
-        }
-      }))
-    })
-
-    it('Should get lambda funtion with after prosess.', done => {
-      const processor = new Processor<undefined, MainProcessResult, Enviroments>(
-        (ambience, promise) => {
-          const result: MainProcessResult = {
-            fizz: ambience.environments.foo,
-            buzz: ambience.environments.bar * 2
-          }
-          promise.success(result)
-        },
-        { foo: 'env', bar: 21 },
-        {
-          after: (ambience, promise) => {
-            const result = Object.assign({}, ambience.result, {
-              headers: { 'Test': 'test' }
-            })
-            promise.success(result)
-          }
-        }
-      )
-      const lambdaFunction = processor.getLambdaFunction()
-
-      invokeLambdaFunction(lambdaFunction, { event: createLambdaProxyEvent() })
-      .onComplete(trier => trier.match({
-        Success: result => {
-          assert.equal(result.statusCode, 200)
-          assert.equal(result.headers['Test'], 'test')
-          assert.equal(result.body, JSON.stringify({ fizz: 'env', buzz: 42 }))
-          done()
-        },
-        Failure: error => {
-          assert.fail(error)
-          done()
-        }
-      }))
-    })
-
-    it('Should get lambda function that called default onFailuer process when error occured.', done => {
-      const processor = new Processor<undefined, MainProcessResult, Enviroments>(
-        (ambience, promise) => {
-          promise.failure(new Error('This is a test'))
+        ambience => {
+          return Promise.reject(new Error('Error occured.'))
         },
         { foo: 'env', bar: 21 }
       )
-      const lambdaFunction = processor.getLambdaFunction()
+      const handler = processor.toHandler()
 
-      invokeLambdaFunction(lambdaFunction, { event: createLambdaProxyEvent() })
-      .onComplete(trier => trier.match({
-        Success: result => {
-          assert.equal(result.statusCode, 500)
-          assert.equal(result.body, JSON.stringify({
-            name: 'Error',
-            message: 'This is a test'
-          }))
-          done()
-        },
-        Failure: error => {
-          assert.fail(error)
-          done()
-        }
-      }))
-    })
-
-    it('Should get lambda function that called fatal error handler.', done => {
-      const processor = new Processor<undefined, MainProcessResult, Enviroments>(
-        (ambience, promise) => {
-          const result: MainProcessResult = {
-            fizz: ambience.environments.foo,
-            buzz: ambience.environments.bar * 2
-          }
-          promise.success(result)
-        },
-        { foo: 'env', bar: 21 },
-        {
-          onSuccess: (ambience, promise) => {
-            throw new Error('This is a test')
-          }
-        }
-      )
-      const lambdaFunction = processor.getLambdaFunction()
-
-      invokeLambdaFunction(lambdaFunction, { event: createLambdaProxyEvent() })
-      .onComplete(trier => trier.match({
-        Success: result => {
-          assert.equal(result.statusCode, 500)
-          assert.equal(result.body, JSON.stringify({
-            name: 'Error',
-            message: 'This is a test'
-          }))
-          done()
-        },
-        Failure: error => {
-          assert.fail(error)
-          done()
-        }
-      }))
+      const callback = generateMockCallback((error, result) => {
+        callback.once()
+        assert.equal(result.statusCode, 500)
+        assert.equal(JSON.parse(result.body).message, 'Error occured.')
+        assert.ok(callback.verify())
+        done()
+      })
+      
+      invokeHandler(handler, {
+        event: generateDummyAPIGatewayEvent(),
+        callback: callback
+      })
     })
 
   })

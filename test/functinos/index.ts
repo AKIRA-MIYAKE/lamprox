@@ -1,77 +1,93 @@
 import * as assert from 'power-assert'
+import { invokeHandler, generateMockCallback } from 'lambda-utilities'
 
-import { LambdaProxyCallbackResult } from '../../src/interface'
-import { prepareLambdaFunctionBuilder, lamprox } from '../../src/functions'
-import { Processes } from '../../src/processes'
-import { createLambdaProxyEvent, extendProcess, invokeLambdaFunction } from '../../src/utils'
+import { buildHandler, lamprox, prepareHandlerBuilder } from '../../src/functions'
+import { generateDummyAPIGatewayEvent } from '../../src/utilities'
 
 describe('functinos', () => {
 
-  describe('lamprox', () => {
+  describe('prepare-handler-builder', () => {
 
-    describe('lamprox()', () => {
+    describe('prepareHandlerBuilder()', () => {
 
-      it('Should get simple lambda function.', done => {
-        const lambdaFunction = lamprox<{ fizz: string }>((ambience, promise) => {
-          promise.success({ fizz: 'buzz' })
+      it('Should get buildHandler function.', done => {
+        const buildHandler = prepareHandlerBuilder<number, { foo: number },  { ratio: number }>({
+          before: ambience => Promise.resolve(21)
         })
-        invokeLambdaFunction(lambdaFunction, {
-          event: createLambdaProxyEvent()
+
+        const handler = buildHandler({
+          main: ambience => Promise.resolve({ foo: ambience.result * ambience.environments.ratio }),
+          environments: { ratio: 2 }
         })
-        .onComplete(trier => trier.match({
-          Success: result => {
-            assert.equal(result.statusCode, 200)
-            assert.equal(result.body, JSON.stringify({ fizz: 'buzz' }))
-            done()
-          },
-          Failure: error => {
-            assert.fail(error)
-            done()
-          }
-        }))
+
+        const callback = generateMockCallback((error, result) => {
+          callback.once()
+          assert.equal(result.statusCode, 200)
+          assert.equal(result.body, JSON.stringify({ foo: 42 }))
+          assert.ok(callback.verify())
+          done()
+        })
+
+        invokeHandler(handler, {
+          event: generateDummyAPIGatewayEvent(),
+          callback: callback
+        })
       })
 
     })
 
   })
 
-  describe('create-lambda-function-builder', () => {
+  describe('build-hander', () => {
 
-    describe('createLambdaFunctionBuilder()', () => {
+    describe('buildHandler()', () => {
 
-      it('Should update process when create lambda function.', done => {
-        const lambdaFunctionBuilder = prepareLambdaFunctionBuilder<undefined, string, undefined>()
-        const lambdaFunction = lambdaFunctionBuilder(
-          (ambinece, promise) => {
-            promise.success('result')
-          },
-          undefined,
-          {
-            onSuccess: extendProcess(Processes.getOnSuccessProcess<string, undefined>(), (ambinece, promise) => {
-              const result: LambdaProxyCallbackResult = Object.assign({}, ambinece.result, {
-                headers: {
-                  'Test': 'test'
-                }
-              })
-              promise.success(result)
-            })
+      it('Should get handler.', done => {
+        const handler = buildHandler<number, { foo: number }, { ratio: number }>({
+          main: ambience => Promise.resolve({ foo: ambience.result * ambience.environments.ratio }),
+          environments: { ratio: 2 },
+          options: {
+            before: ambience => Promise.resolve(21)
           }
-        )
-
-        invokeLambdaFunction(lambdaFunction, {
-          event: createLambdaProxyEvent()
         })
-        .onComplete(trier => trier.match({
-          Success: result => {
-            assert.equal(result.body, 'result')
-            assert.equal(result.headers['Test'], 'test')
-            done()
-          },
-          Failure: error => {
-            assert.fail(error)
-            done()
-          }
-        }))
+
+        const callback = generateMockCallback((error, result) => {
+          callback.once()
+          assert.equal(result.statusCode, 200)
+          assert.equal(result.body, JSON.stringify({ foo: 42 }))
+          assert.ok(callback.verify())
+          done()
+        })
+
+        invokeHandler(handler, {
+          event: generateDummyAPIGatewayEvent(),
+          callback: callback
+        })
+      })
+
+    })
+
+  })
+
+  describe('lamprox', () => {
+
+    describe('lamprox()', () => {
+
+      it('Should get simple handler.', done => {
+        const handler = lamprox<{ foo: number }>(ambience => Promise.resolve({ foo: 42 }))
+
+        const callback = generateMockCallback((error, result) => {
+          callback.once()
+          assert.equal(result.statusCode, 200)
+          assert.equal(result.body, JSON.stringify({ foo: 42 }))
+          assert.ok(callback.verify())
+          done()
+        })
+
+        invokeHandler(handler, {
+          event: generateDummyAPIGatewayEvent(),
+          callback: callback
+        })
       })
 
     })
