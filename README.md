@@ -1,4 +1,4 @@
-# lamprox
+# Lamprox
 Framework for development lambda-proxy function of AWS Lambda.
 
 ## Setup
@@ -7,154 +7,103 @@ Framework for development lambda-proxy function of AWS Lambda.
 $ npm install lamprox
 ```
 
-## Functions
-### lamprox()
-Create simple lambda function.
+## Concept and Usage
+Lamprox is a minimal and flexible framework for lambda-proxy function of AWS Lambda.  
+When building multiple endpoints with AWS Lambda, authentication, response processing, and error handling can be applied across functions in each function.  
+
+### Process
+Lamprox defines a handler with multiple `Process`.  
+`Process` is a function as shown below.  
 
 ```
-<U>(main: MainProcess<undefined, U, undefined>) => LambdaFunction
-```
+interface Process<T, U, E> {
+  (ambience: ProcessAmbience<T, E>): Promise<U | undefined>
+}
 
-```
-export const handler = lamprox<{ [key: string]: string }>((ambience, promise) => {
-  promise.success({ 'fizz': 'buzz' });
-});
-```
-
-Lambda function callback is setuped by lamprox.
-
-```
-callback(undefined, {
-  statusCode: 200,
-  body: JSON.stringify({ 'fizz': 'buzz' })
-});
-```
-
-### createLambdaFunction()
-Create lambda function with various processes - before, onSuccess, onFailure, after -, enviroments and settings.
-Enviroments is value shared across processes.
-Settings is objects that change the standard behavior.
-
-```
-<T, U, E>(main: MainProcess<T, U, E>, environments: E, options?: ProcessorOptions<T, U, E>, settings?: ProcessorSettings) => LambdaFunction
-```
-
-```
-export const handler = createLambdaFunction<number, string, number>(
-  (ambience, promise) => {
-    const beforeResult = ambience.result
-    promise.success(`Before result is ${beforeResult}`)
-  },
-  42,
-  {
-    before: (ambience, promise) => { promise.success(ambience.environments); },
-    onSuccess: (ambience, promise) => {
-      const mainResult = ambience.result;
-      promise.success({
-        statusCode: 200,
-        body: JSON.stringify({ main: mainResult, foo: 'bar' })
-      });
-    },
-    onFailure: (ambience, promise) => {
-      const error = ambience.result;
-      promise.success({
-        statusCode: 400,
-        headers: {},
-        body: JSON.stringify({
-          title: 'Process fail!!',
-          error: error
-        })
-      });
-    },
-    after: (ambience, promise) => {
-      const callbackResult = ambience.result;
-      promise.success(Object.assign({}, callbackResult, {
-        headers: Object.assign({}, callbackResult.headers, {
-          'Cache-Control': 'max-age=3600'
-        })
-      }));
-    }
+interface ProcessAmbience<T, E> {
+  /** Variables that pssed lambda function. */
+  lambda: {
+    event: APIGatewayEvent
+    context: Context
+    callback: ProxyCallback
   }
-)
-```
-
-### prepareLambdaFunctionBuilder()
-Make a builder that makes common settings for creating multiple functions.
-When create lambda function by builder, can override processes with `ProcessorOptions`.
-
-```
-<T, U, E>(options?: ProcessorOptions<T, U, E>, settings?: ProcessorSettings) => LambdaFunctionBuilder<T, U, E>
-```
-
-```
-interface LambdaFunctionBuilder<T, U, E> {
-  (main: MainProcess<T, U, E>, environments: E, options?: ProcessorOptions<T, U, E>): LambdaFunction
-}
-```
-
-## Processes
-`lamprox` is preparing default processes for creating simple api response.
-
-### BeforeProcess [getBeforeProcess()]
-Process not doing anything by standard.
-Recommend you to do session management etc in this process.
-
-### OnSuccessProcess [getOnSuccessProcess()]
-The process of converting the result of the main process to the appropriate format of lambda proxy.
-
-## OnFailuerProcess [getOnFailureProcess()]
-The process of error handling.
-It is expected that an error is contained in `ambience.result`.
-
-## AfterProcess [getAfeterProcess()]
-A process that performs common processing before returning a response.
-
-## Utils
-### extendProcess()
-```
-<T, U, E>(parent: Process<T, U, E>, ex: Process<U, U, E>) => Process<T, U, E>
-```
-
-### createLambdaProxyEvent()
-```
-(params?: CreateLambdaProxyEventParams) => LambdaProxyEvent
-```
-
-```
-interface CreateLambdaProxyEventParams {
-  resource?: string
-  path?: string
-  httpMethod?: string
-  headers?: { [key: string]: string }
-  queryStringParameters?: { [key: string]: string }
-  pathParameters?: { [key: string]: string }
-  stageVariables?: string | undefined
-  requestContext?: { [key: string]: any }
-  body?: any
-  isBase64Encoded?: boolean
-}
-```
-
-### invokeProcess()
-```
-<T, U, E>(process: Process<T, U, E>, params: InvokeProcessParams<T, E>) => Future<ProcessAmbience<U, E>>
-```
-
-```
-interface InvokeProcessParams<T, E> {
-  event: LambdaProxyEvent
-  result: T
+  /** Result that preceding process. */
+  result?: T
+  /** Shared variables accross that processes. */
   environments: E
 }
 ```
 
-### invokeLambdaFunction()
-```
-<E>(lambdaFunction: LambdaFunction, params: InvokeLambdaFunctionParams) => Future<LambdaProxyCallbackResult>
-```
+### Processor
+`Processor` is a class that collects processes and executes them in order.  
+`Processor` holds the processes before, main, after, response, onError and executes it as a handler.  
 
 ```
-interface InvokeLambdaFunctionParams {
-  event: LambdaProxyEvent
+/** Preparing before main process. */
+type BeforeProcess<T, E> = Process<undefined, T, E>
+/** Main process for request. */
+type MainProcess<T, U, E> = Process<T, U, E>
+/** After process. */
+type AfterProcess<U, E> = Process<U, U, E>
+/** Process that creating proxy result. */
+type ResponseProcess<U, E> = Process<U, ProxyResult, E>
+/** Process that called when error occured. */
+type OnErrorProcess<E> = Process<Error, ProxyResult, E>
+
+interface IProcessor<T, U, E> {
+  before: BeforeProcess<T, E>
+  main: MainProcess<T, U, E>
+  after: AfterProcess<U, E>
+  response: ResponseProcess<U, E>
+  onError: OnErrorProcess<E>
+
+  toHandler: () => LambdaProxyHandler
 }
+```
+
+### Functions
+Generally, it is not necessary to directly generate a processor.  
+Lamprox provides several functions for creating handler.  
+
+#### `lamprox()`
+Create simple lambda proxy handler.  
+You can create a handler for lambda-proxy by simply writing a method to generate the response body.  
+
+```
+lamprox: <U>(main: MainProcess<undefined, U, undefined>) => LambdaProxyHandler
+```
+
+#### `buildHandler()`
+Create lambda function with various processes - befire, after, response, onError - and enviroments.  
+Enviroments is value shared across processes.  
+
+```
+buildHandler: <T, U, E>(parmas: LambdaProxyHandlerBuilder.Params<T, U, E>) => LambdaProxyHandler
+```
+
+#### `prepareHandlerBuilder()`
+`prepareHandlerBuilder()` is a function for creating buildHandler function.  
+Assuming that there are many Lambda functions, you can generate a buildHandler function that defines a common process.  
+
+```
+prepareHandlerBuilder: <T, U, E>(preparedOptions?: ProcessorOptions<T, U, E>) => LambdaProxyHandlerBuilder<T, U, E>
+```
+
+### Utilities
+Lamprox contains [node-lambda-utilities](https://github.com/AKIRA-MIYAKE/node-lambda-utilities), but provides some utility functions for lambda-proxy.  
+
+#### `generateDummyAPIGatewayEvent()`
+This is a function for generating a dummy APIGatewayEvent.  
+You can test the handler by using it together with `invokeHandler()` of node-lambda-utilities.  
+
+```
+generateDummyAPIGatewayEvent: (params?: GenerateDummyAPIGatewayEvent.Params) => APIGatewayEvent
+```
+
+#### `generateProcessAmbience()`
+A function that generates `ProcessAmbience` which is an argument when `Process` is executed.  
+By using this, it is possible to test each `Process`.  
+
+```
+generateProcessAmbience: <T, E>(params: GenerateProcessAmbience.Params<T, E>) => ProcessAmbience<T, E>
 ```

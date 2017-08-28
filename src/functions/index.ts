@@ -1,3 +1,3 @@
-export * from './create-lambda-function'
+export * from './build-handler'
 export * from './lamprox'
-export * from './prepare-lambda-function-builder'
+export * from './prepare-handler-builder'

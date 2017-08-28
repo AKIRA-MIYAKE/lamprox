@@ -1,77 +1,38 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var monapt_1 = require("monapt");
 var processes_1 = require("../processes");
-var fatal_error_handler_1 = require("./fatal-error-handler");
-var utils_1 = require("../utils");
+var utilities_1 = require("../utilities");
 var Processor = (function () {
-    function Processor(main, environments, options, settings) {
+    function Processor(main, environments, options) {
         if (options === void 0) { options = {}; }
-        if (settings === void 0) { settings = {}; }
         this.main = main;
         this.environments = environments;
-        this.before = processes_1.Processes.getBeforeProcess();
-        this.onSuccess = processes_1.Processes.getOnSuccessProcess();
-        this.onFailure = processes_1.Processes.getOnFailureProcess();
-        this.after = processes_1.Processes.getAfterProcess();
-        this.fatalErrorHandler = fatal_error_handler_1.fatalErrorHandler;
+        this.before = processes_1.getDefaultBeforeProcess();
+        this.after = processes_1.getDefaultAfterProcess();
+        this.response = processes_1.getDefaultResponseProcess();
+        this.onError = processes_1.getDefaultOnErrorProcess();
         if (typeof options.before !== 'undefined') {
             this.before = options.before;
-        }
-        if (typeof options.onSuccess !== 'undefined') {
-            this.onSuccess = options.onSuccess;
-        }
-        if (typeof options.onFailure !== 'undefined') {
-            this.onFailure = options.onFailure;
         }
         if (typeof options.after !== 'undefined') {
             this.after = options.after;
         }
-        if (typeof settings.fatalErrorHandler !== 'undefined') {
-            this.fatalErrorHandler = settings.fatalErrorHandler;
+        if (typeof options.response !== 'undefined') {
+            this.response = options.response;
+        }
+        if (typeof options.onError !== 'undefined') {
+            this.onError = options.onError;
         }
     }
-    Processor.prototype.getLambdaFunction = function () {
+    Processor.prototype.toHandler = function () {
         var _this = this;
         return function (event, context, callback) {
-            monapt_1.future(function (promise) {
-                monapt_1.Future.succeed({
-                    lambda: { event: event, context: context, callback: callback },
-                    result: undefined,
-                    environments: _this.environments
-                })
-                    .flatMap(function (ambience) { return utils_1.processToFuture(ambience, _this.before); })
-                    .flatMap(function (ambience) { return utils_1.processToFuture(ambience, _this.main); })
-                    .onComplete(function (trier) { return trier.match({
-                    Success: function (ambience) {
-                        utils_1.processToFuture(ambience, _this.onSuccess)
-                            .onComplete(function (trier) { return trier.match({
-                            Success: function (ambience) { return promise.success(ambience); },
-                            Failure: function (error) { return promise.failure(error); }
-                        }); });
-                    },
-                    Failure: function (error) {
-                        utils_1.processToFuture({
-                            lambda: { event: event, context: context, callback: callback },
-                            result: error,
-                            environments: _this.environments
-                        }, _this.onFailure)
-                            .onComplete(function (trier) { return trier.match({
-                            Success: function (ambience) { return promise.success(ambience); },
-                            Failure: function (error) { return promise.failure(error); }
-                        }); });
-                    }
-                }); });
-            })
-                .flatMap(function (ambience) { return utils_1.processToFuture(ambience, _this.after); })
-                .onComplete(function (trier) { return trier.match({
-                Success: function (ambience) {
-                    callback(undefined, ambience.result);
-                },
-                Failure: function (error) {
-                    _this.fatalErrorHandler(error, callback);
-                }
-            }); });
+            Promise.resolve(undefined)
+                .then(function (result) { return _this.before(utilities_1.generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: _this.environments })); })
+                .then(function (result) { return _this.main(utilities_1.generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: _this.environments })); })
+                .then(function (result) { return _this.after(utilities_1.generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: _this.environments })); })
+                .then(function (result) { return _this.response(utilities_1.generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: _this.environments })); }, function (error) { return _this.onError(utilities_1.generateProcessAmbience({ event: event, context: context, callback: callback, result: error, environments: _this.environments })); })
+                .then(function (result) { return callback(undefined, result); });
         };
     };
     return Processor;
