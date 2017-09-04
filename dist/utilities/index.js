@@ -4,4 +4,5 @@ function __export(m) {
 }
 Object.defineProperty(exports, "__esModule", { value: true });
 __export(require("./api-gateway-event"));
+__export(require("./http-errors"));
 __export(require("./process-ambience"));
