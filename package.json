@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "mocha --compilers ts:espower-typescript/guess \"test/**/*.ts\""
+    "test": "jest --config ./jestconfig.json --coverage"
   },
   "repository": {
     "type": "git",
@@ -23,19 +23,22 @@
   },
   "homepage": "https://github.com/AKIRA-MIYAKE/lamprox#readme",
   "devDependencies": {
+    "@types/jest": "^21.1.6",
     "@types/mocha": "^2.2.42",
     "@types/power-assert": "^1.4.29",
     "@types/sinon": "^2.3.3",
     "espower-typescript": "^8.1.0",
+    "jest": "^21.2.1",
     "mocha": "^3.5.0",
     "power-assert": "^1.4.4",
     "sinon": "^3.2.1",
-    "typescript": "^2.4.2"
+    "ts-jest": "^21.2.2",
+    "typescript": "^2.6.1"
   },
   "dependencies": {
     "@types/http-errors": "^1.6.1",
     "@types/node": "^8.0.25",
     "http-errors": "^1.6.2",
-    "lambda-utilities": "0.0.2"
+    "lambda-utilities": "0.0.3"
   }
 }
