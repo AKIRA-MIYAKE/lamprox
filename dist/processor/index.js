@@ -1,40 +1,44 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var processes_1 = require("../processes");
-var utilities_1 = require("../utilities");
-var Processor = (function () {
-    function Processor(main, environments, options) {
-        if (options === void 0) { options = {}; }
-        this.main = main;
-        this.environments = environments;
+var process_ambience_1 = require("../utilities/process-ambience");
+var Processor = /** @class */ (function () {
+    function Processor(params) {
         this.before = processes_1.getDefaultBeforeProcess();
         this.after = processes_1.getDefaultAfterProcess();
         this.response = processes_1.getDefaultResponseProcess();
         this.onError = processes_1.getDefaultOnErrorProcess();
-        if (typeof options.before !== 'undefined') {
-            this.before = options.before;
+        this.main = params.main;
+        this.enviroments = params.environments;
+        if (typeof params.before !== 'undefined') {
+            this.before = params.before;
         }
-        if (typeof options.after !== 'undefined') {
-            this.after = options.after;
+        if (typeof params.after !== 'undefined') {
+            this.after = params.after;
         }
-        if (typeof options.response !== 'undefined') {
-            this.response = options.response;
+        if (typeof params.response !== 'undefined') {
+            this.response = params.response;
         }
-        if (typeof options.onError !== 'undefined') {
-            this.onError = options.onError;
+        if (typeof params.onError !== 'undefined') {
+            this.onError = params.onError;
         }
     }
     Processor.prototype.toHandler = function () {
         var _this = this;
+        var environments = this.enviroments;
         return function (event, context, callback) {
-            Promise.resolve(undefined)
-                .then(function (result) { return _this.before(utilities_1.generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: _this.environments })); })
-                .then(function (result) { return _this.main(utilities_1.generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: _this.environments })); })
-                .then(function (result) { return _this.after(utilities_1.generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: _this.environments })); })
-                .then(function (result) { return _this.response(utilities_1.generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: _this.environments })); }, function (error) { return _this.onError(utilities_1.generateProcessAmbience({ event: event, context: context, callback: callback, result: error, environments: _this.environments })); })
-                .then(function (result) { return callback(undefined, result); });
+            Promise.resolve()
+                .then(function (result) { return _this.before(process_ambience_1.generateProcessAmbience({ result: result, environments: environments, event: event, context: context, callback: callback })); })
+                .then(function (result) { return _this.main(process_ambience_1.generateProcessAmbience({ result: result, environments: environments, event: event, context: context, callback: callback })); })
+                .then(function (result) { return _this.after(process_ambience_1.generateProcessAmbience({ result: result, environments: environments, event: event, context: context, callback: callback })); })
+                .then(function (result) { return _this.response(process_ambience_1.generateProcessAmbience({ result: result, environments: environments, event: event, context: context, callback: callback })); }, function (result) { return _this.onError(process_ambience_1.generateProcessAmbience({ result: result, environments: environments, event: event, context: context, callback: callback })); })
+                .then(function (result) { return callback(undefined, result); })
+                .catch(function (error) {
+                callback(undefined, { statusCode: 500, body: 'Fatal error occured.' });
+            });
         };
     };
     return Processor;
 }());
 exports.Processor = Processor;
+//# sourceMappingURL=index.js.map

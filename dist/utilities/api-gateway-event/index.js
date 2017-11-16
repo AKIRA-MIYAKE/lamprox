@@ -14,3 +14,4 @@ exports.generateDummyAPIGatewayEvent = function (params) {
         isBase64Encoded: false
     }, params);
 };
+//# sourceMappingURL=index.js.map

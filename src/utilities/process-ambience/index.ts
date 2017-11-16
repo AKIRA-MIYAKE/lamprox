@@ -14,7 +14,7 @@ export const generateProcessAmbience: <T, E>(params: GenerateProcessAmbience.Par
 
 export namespace GenerateProcessAmbience {
   export interface Params<T, E> {
-    result: T | undefined,
+    result: T,
     environments: E
     event: APIGatewayEvent,
     context: Context,

@@ -9,3 +9,4 @@ exports.generateProcessAmbience = function (params) { return ({
     result: params.result,
     environments: params.environments
 }); };
+//# sourceMappingURL=index.js.map

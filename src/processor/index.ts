@@ -1,65 +1,63 @@
-import { APIGatewayEvent, Context, ProxyCallback, ProxyResult } from 'aws-lambda'
-import {
-  getDefaultBeforeProcess,
-  getDefaultAfterProcess,
-  getDefaultResponseProcess,
-  getDefaultOnErrorProcess
-} from '../processes'
-import { generateProcessAmbience } from '../utilities'
 import {
   LambdaProxyHandler,
-  MainProcess,
+  IProcessor,
   BeforeProcess,
+  MainProcess,
   AfterProcess,
   ResponseProcess,
-  OnErrorProcess,
-  ProcessAmbience,
-  IProcessor,
-  ProcessorOptions
+  OnErrorProcess
 } from '../types'
+import { getDefaultBeforeProcess, getDefaultAfterProcess, getDefaultResponseProcess, getDefaultOnErrorProcess } from '../processes'
+import { generateProcessAmbience } from '../utilities/process-ambience'
+import { error } from 'util';
 
 export class Processor<T, U, E> implements IProcessor<T, U, E> {
+
+  main: MainProcess<T, U, E>
+  enviroments: E
 
   before: BeforeProcess<T, E> = getDefaultBeforeProcess<T, E>()
   after: AfterProcess<U, E> = getDefaultAfterProcess<U, E>()
   response: ResponseProcess<U, E> = getDefaultResponseProcess<U, E>()
   onError: OnErrorProcess<E> = getDefaultOnErrorProcess<E>()
 
-  constructor(
-    public main: MainProcess<T, U, E>,
-    public environments: E,
-    options: ProcessorOptions<T, U, E> = {}
-  ) {
-    if (typeof options.before !== 'undefined') {
-      this.before = options.before
+  constructor(params: IProcessor.Params<T, U, E>) {
+    this.main = params.main
+    this.enviroments = params.environments
+
+    if (typeof params.before !== 'undefined') {
+      this.before = params.before
     }
 
-    if (typeof options.after !== 'undefined') {
-      this.after = options.after
+    if (typeof params.after !== 'undefined') {
+      this.after = params.after
     }
 
-    if (typeof options.response !== 'undefined') {
-      this.response = options.response
+    if (typeof params.response !== 'undefined') {
+      this.response = params.response
     }
 
-    if (typeof options.onError !== 'undefined') {
-      this.onError = options.onError
+    if (typeof params.onError !== 'undefined') {
+      this.onError = params.onError
     }
   }
 
   toHandler(): LambdaProxyHandler {
+    const environments = this.enviroments
     return (event, context, callback) => {
-      Promise.resolve(undefined)
-      .then(result => this.before(generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: this.environments })))
-      .then(result => this.main(generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: this.environments })))
-      .then(result => this.after(generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: this.environments })))
+      Promise.resolve()
+      .then(result => this.before(generateProcessAmbience({ result, environments, event, context, callback })))
+      .then(result => this.main(generateProcessAmbience({ result, environments, event, context, callback })))
+      .then(result => this.after(generateProcessAmbience({ result, environments, event, context, callback })))
       .then(
-        result => this.response(generateProcessAmbience({ event: event, context: context, callback: callback, result: result, environments: this.environments })),
-        error => this.onError(generateProcessAmbience({ event: event, context: context, callback: callback, result: error, environments: this.environments }))
+        result => this.response(generateProcessAmbience({ result, environments, event, context, callback })),
+        result => this.onError(generateProcessAmbience({ result, environments, event, context, callback }))
       )
-      .then(result => callback(undefined, result!))
+      .then(result => callback(undefined, result))
+      .catch(error => {
+        callback(undefined, { statusCode: 500, body: 'Fatal error occured.'})
+      })
     }
   }
 
 }
-
