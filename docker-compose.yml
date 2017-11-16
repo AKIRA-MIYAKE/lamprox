@@ -2,6 +2,6 @@ version: '2'
 
 services:
   node:
-    build: ./dockerfiles/node
+    build: ./docker/node
     volumes:
       - ./:/lamprox

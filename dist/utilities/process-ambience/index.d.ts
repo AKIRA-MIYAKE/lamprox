@@ -3,7 +3,7 @@ import { ProcessAmbience } from '../../types';
 export declare const generateProcessAmbience: <T, E>(params: GenerateProcessAmbience.Params<T, E>) => ProcessAmbience<T, E>;
 export declare namespace GenerateProcessAmbience {
     interface Params<T, E> {
-        result: T | undefined;
+        result: T;
         environments: E;
         event: APIGatewayEvent;
         context: Context;
