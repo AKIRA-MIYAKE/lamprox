@@ -1,6 +1,6 @@
 {
   "name": "lamprox",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Framework for development lambda-proxy function of AWS Lambda.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -23,22 +23,15 @@
   },
   "homepage": "https://github.com/AKIRA-MIYAKE/lamprox#readme",
   "devDependencies": {
-    "@types/jest": "^21.1.6",
-    "@types/mocha": "^2.2.42",
-    "@types/power-assert": "^1.4.29",
-    "@types/sinon": "^2.3.3",
-    "espower-typescript": "^8.1.0",
-    "jest": "^21.2.1",
-    "mocha": "^3.5.0",
-    "power-assert": "^1.4.4",
-    "sinon": "^3.2.1",
-    "ts-jest": "^21.2.2",
-    "typescript": "^2.6.1"
+    "@types/jest": "^23.3.1",
+    "jest": "^23.5.0",
+    "ts-jest": "^23.1.4",
+    "typescript": "^3.0.3"
   },
   "dependencies": {
     "@types/http-errors": "^1.6.1",
-    "@types/node": "^8.0.25",
-    "http-errors": "^1.6.2",
-    "lambda-utilities": "0.0.3"
+    "@types/node": "^10.10.1",
+    "http-errors": "^1.7.1",
+    "lambda-utilities": "^0.1.0"
   }
 }
