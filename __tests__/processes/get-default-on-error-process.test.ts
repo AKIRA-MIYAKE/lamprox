@@ -48,7 +48,7 @@ describe('processes', () => {
         const process = getDefaultOnErrorProcess<void>()
 
         const ambience = generateProcessAmbience<Error, void>({
-          result: undefined,
+          result: undefined as any,
           environments: undefined,
           event: generateDummyAPIGatewayEvent(),
           context: generateMockContext(),
